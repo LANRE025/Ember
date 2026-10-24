@@ -16,7 +16,7 @@ At the core:
 - **Ranks**: Active with a penalty — 2 consecutive Nothing days or unlogged days count as Nothing and lower rank by one (never below Spark). To rank up: 3 consecutive days of at least a Realistic run gives +2, 3 consecutive days of at least a Floor run gives +1. Ranks go Spark → Kindle → Flame → Blaze → Inferno.
 - **Coach**: **Kael** (Sensei) appears on Today, Tonight, and Week screens on the leftmost part of the page. He's a knight in folded-arm pose with a conspicuous sword, shown from head-to-waist using the exact image `Gemini_Generated_Image_owkwf4owkwf4owkw.jpg` (no cropping, scale as needed).
 - **Storage**: A Python FastAPI server with SQLite (ephemeral on Cloud Run for the PoC). All state persists in SQLite while the instance is alive, but will reset on restart/redeploy.
-- **UI**: React Native (Expo) app with deep navy blue as primary, windows/icons in deep navy/purple/red only for negative alerts, with a 3D feel. No flashy motion.
+- **UI**: React web app with deep navy blue as primary, windows/icons in deep navy/purple/red only for negative alerts, with a 3D feel. No flashy motion.
 
 The shape is deliberately simple: API server + mobile app, both talking over HTTP. Everything is sized to prove the core loop without extra services.
 
@@ -24,7 +24,7 @@ The shape is deliberately simple: API server + mobile app, both talking over HTT
 
 Implements `prd.md > The Core Journey`.
 
-1. **First open** → React Native loads, calls FastAPI `/setup/status`. No goal → shows first-run screen. User enters goal + why.
+1. **First open** → React web app loads, calls FastAPI `/setup/status`. No goal → shows first-run screen. User enters goal + why.
 2. **Interview + band reveal** → FastAPI calls Gemini Pro to help suggest bands based on answers. If AI fails, fallback to manual S/R + system-assigned Floor. Bands saved to SQLite.
 3. **Today** → App loads goal/bands/rank/logs. **Kael** renders on leftmost edge (full head-to-waist image, scaled). User can raise S/R by 1 step (Floor locked). Can log the day or go to Tonight.
 4. **Tonight** → Brain dump sent to FastAPI, Gemini Pro generates top 3 quests with tiny first steps. Returns to app, saved as today's quests.
@@ -38,31 +38,31 @@ Implements `prd.md > The Core Journey`.
 | Component | Technology | Version/Notes | Docs |
 |-----------|------------|---------------|------|
 | Backend | **Python + FastAPI** | Latest stable | [FastAPI Docs](https://fastapi.tiangolo.com/) |
-| Frontend | **React Native (Expo)** | Latest Expo SDK | [Expo Docs](https://docs.expo.dev/) |
+| Frontend | **React Web (Vite/React)** | Latest | [React Docs](https://react.dev/) |
 | Database | **SQLite** | Built-in, ephemeral on Cloud Run | [SQLite Docs](https://www.sqlite.org/docs.html) |
 | AI | **Google Gemini Pro** | Via `google-generativeai` | [Google AI Docs](https://ai.google.dev/docs) |
 | Deployment | **Google Cloud Run** | Containerized | [Cloud Run Docs](https://cloud.google.com/run/docs) |
-| HTTP Client | **axios** (RN) | Standard | [React Native Networking](https://reactnative.dev/docs/network) |
+| HTTP Client | **axios** (web) | Standard | [Axios Docs](https://axios-http.com/) |
 
-**Rationale**: FastAPI is clean for API routes and easy to containerize for Cloud Run. Expo makes React Native easy to run/emulate for recording the demo video. SQLite keeps it simple for the PoC with ephemeral storage accepted. Gemini Pro provides the AI features requested.
+**Rationale**: FastAPI is clean for API routes and easy to containerize for Cloud Run. React web app is easy to run for recording the demo video. SQLite keeps it simple for the PoC with ephemeral storage accepted. Gemini Pro provides the AI features requested.
 
 ## Where It Runs and How Someone Tries It
 
 **Runtime**: 
 - **Backend**: Containerized Python app on Google Cloud Run (listens on `$PORT`)
-- **Frontend**: React Native app run via Expo (locally on emulator/device for demo recording)
+- **Frontend**: React web app (run locally for demo recording)
 
 **Environment requirements**:
 - `GEMINI_API_KEY` (required for AI features)
-- `API_BASE_URL` (env var for React Native app pointing to Cloud Run backend)
+- `API_BASE_URL` (env var for web app pointing to Cloud Run backend)
 - `PORT` (set by Cloud Run)
 
 **Start commands**:
 1. **Backend locally**: `cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload --port 8080`
-2. **Frontend (Expo)**: `cd mobile && npm install && npx expo start` (scan QR or use emulator)
+2. **Frontend**: `cd frontend && npm install && npm run dev`
 3. **Deploy to Cloud Run**: Build container from `backend/Dockerfile` and deploy with env vars
 
-**Demo**: Run the app via Expo, point to the Cloud Run API (or local), walk through the flow. Record a short demo video. Push code to public GitHub repo. Deployment to Cloud Run is required as specified.
+**Demo**: Run the web app, point to the Cloud Run API (or local), walk through the flow. Record a short demo video. Push code to public GitHub repo. Deployment to Cloud Run is required as specified.
 
 ## Look and Feel
 
@@ -114,7 +114,7 @@ Implements `prd.md > Look and Feel`.
 - Consecutive tracking, penalty and promotion rules
 - PRD ref: `prd.md > Ranks and badges`
 
-### Frontend Components (React Native/Expo)
+### Frontend Components (React Web)
 
 #### `src/screens/FirstRunScreen.tsx`
 - Goal/why input, interview flow, band reveal
@@ -189,7 +189,7 @@ Ember/
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env.example
-├── mobile/
+├── frontend/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Kael.tsx
@@ -205,12 +205,12 @@ Ember/
 │   │   ├── services/
 │   │   │   └── api.ts
 │   │   ├── styles/
-│   │   │   └── theme.ts
+│   │   │   └── theme.css
 │   │   └── assets/
 │   │       └── kael.jpg
-│   ├── App.tsx
-│   ├── app.json
+│   ├── index.html
 │   ├── package.json
+│   ├── vite.config.ts
 │   └── .env.example
 ├── devpost/
 │   └── assets/

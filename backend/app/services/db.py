@@ -2,9 +2,11 @@ import sqlite3
 import os
 from datetime import datetime
 
-DB_PATH = os.getenv("DB_PATH", "/tmp/ember.db")
+DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "..", "ember.db"))
+DB_PATH = os.path.abspath(DB_PATH)
 
 def get_conn():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn

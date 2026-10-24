@@ -9,7 +9,7 @@ Build mode: learn
 
 ## Slices
 
-- [ ] **1. First run → Today with bands, rank, and Kael**
+- [x] **1. First run → Today with bands, rank, and Kael**
   Becomes usable: User can enter goal/why, complete interview or use fallback, see bands on Today screen with Kael on the leftmost edge (head-to-waist knight), rank badge showing Spark, and ability to raise S/R by 1 step (Floor locked).
   Why now: Proves the kernel end-to-end - setup, bands (with constraints), UI with required assets and styling. Includes all scaffolding (FastAPI backend, Expo React Native app, SQLite, Gemini integration with fallback).
   PRD ref: `prd.md > The Core Journey` (steps 1-5), `prd.md > Bands and the Floor`, `prd.md > Look and Feel`, `prd.md > Ranks and badges`
@@ -19,7 +19,7 @@ Build mode: learn
   Learner check: Open the app, create a goal and go through setup, see Today screen with Kael on the left (head-to-waist knight), try to raise S/R (should work) and try to change Floor (should be locked). Check rank shows Spark.
   Commit: `feat: first run to today with bands, rank, and Kael`
 
-- [ ] **2. Evening shutdown and nightly logging with rank penalties**
+- [x] **2. Evening shutdown and nightly logging with rank penalties**
   Becomes usable: User can do evening shutdown (brain dump) to get top 3 quests, log the day as S/R/F/Nothing, and rank updates based on consecutive Nothing/unlogged days.
   Why now: Adds the daily loop and the rank penalty system (core mechanic). Unlogged days count as Nothing.
   PRD ref: `prd.md > Tonight (evening shutdown)`, `prd.md > Nightly log`, `prd.md > Ranks and badges`
@@ -29,7 +29,7 @@ Build mode: learn
   Learner check: Do evening shutdown, get 3 quests, log the day as Floor, check rank behavior. Simulate unlogged day by not logging and see it counts as Nothing.
   Commit: `feat: evening shutdown, nightly logging, rank penalties and promotions`
 
-- [ ] **3. Weekly check-in with evidence and Floor protection**
+- [x] **3. Weekly check-in with evidence and Floor protection**
   Becomes usable: After 3+ nights logged, user can do weekly check-in, see evidence, get proposal, accept it. Floor is protected from user changes; system can adjust Floor on evidence (never to zero). Honest Week fires live.
   Why now: Completes the core loop with evidence-based adjustment. Proves the Floor protection and weekly cadence.
   PRD ref: `prd.md > Week (weekly check-in)`, `prd.md > Bands and the Floor`
@@ -39,7 +39,7 @@ Build mode: learn
   Learner check: Log 3 nights, go to Week, see evidence and proposal, try to change Floor (should be blocked), accept proposal and see it applied.
   Commit: `feat: weekly check-in with evidence, floor protection, honest week`
 
-- [ ] **4. Reminder preview, polish UI to deep navy 3D style, and Cloud Run deployment**
+- [x] **4. Reminder preview, polish UI to deep navy 3D style, and Cloud Run deployment**
   Becomes usable: Reminder preview works, UI matches deep navy/purple/red 3D style, app is deployable to Cloud Run.
   Why now: Completes all PRD features, ensures deployment target works, polishes look and feel.
   PRD ref: `prd.md > Reminder (triggerable mockup)`, `prd.md > Look and Feel`

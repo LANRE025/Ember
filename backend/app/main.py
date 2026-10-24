@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
-from app.api import logs, rank, ai, week
+from app.api import logs, rank, ai, week, setup, goals
 
 app = FastAPI(title="Ember API", version="0.1.0")
 
@@ -13,6 +12,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(setup.router, prefix="/setup", tags=["setup"])
+app.include_router(goals.router, prefix="/goals", tags=["goals"])
 app.include_router(logs.router, prefix="/logs", tags=["logs"])
 app.include_router(rank.router, prefix="/rank", tags=["rank"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])

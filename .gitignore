@@ -1,6 +1,9 @@
 # Personal learning context — kept out of commits by default
 /devpost/learner-profile.md
 
+# Local design references (may be large or private)
+/devpost/references/
+
 # Local credentials and secrets
 .env
 .env.*

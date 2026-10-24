@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ember — Technical Spec</title>
+  <style>
+    :root {
+      --bg: #03080f;
+      --panel: #050a14;
+      --line: #1c2c46;
+      --text: #dbeafe;
+      --muted: #8ea6c4;
+      --muted-2: #6b7fa3;
+      --cyan: #22d3ee;
+      --cyan-soft: #a5f3fc;
+      --violet: #8b9bff;
+      --purple: #6366f1;
+      --red: #f87171;
+      --good: #34d399;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: radial-gradient(1200px 800px at 50% 0%, #07182f 0%, var(--bg) 55%); color: var(--text); font: 16px/1.7 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 56px 24px 80px; }
+    .eyebrow { text-transform: uppercase; letter-spacing: .28em; font-size: 11px; color: var(--cyan-soft); margin: 0 0 12px; }
+    h1 { font-size: clamp(40px, 6vw, 72px); line-height: .98; margin: 0 0 16px; letter-spacing: -.02em; }
+    h1 .g { background: linear-gradient(90deg, #e0f2fe 0%, #67e8f9 40%, #a5b4fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 40px 120px rgba(34,211,238,.18); }
+    .lede { font-size: clamp(18px, 2.2vw, 22px); color: var(--muted); max-width: 880px; margin: 0 0 26px; }
+    .pills { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 46px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(34,211,238,.4); border-radius: 999px; padding: 7px 14px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan-soft); background: radial-gradient(circle, rgba(34,211,238,.16) 0%, transparent 70%); }
+    .pill.status { color: #fbbf24; border-color: rgba(251,191,36,.5); background: radial-gradient(circle, rgba(251,191,36,.16) 0%, transparent 70%); }
+    section { margin: 56px 0; }
+    .sec-head { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 24px; }
+    .sec-num { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; border: 1px solid rgba(34,211,238,.5); color: var(--cyan-soft); font-weight: 700; letter-spacing: .2em; box-shadow: 0 0 60px rgba(34,211,238,.12); }
+    .sec-head h2 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.01em; }
+    .sec-sub { margin: 6px 0 0; color: var(--muted); }
+    .card { border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(800px 400px at 50% 0%, rgba(34,211,238,.08) 0%, transparent 70%), linear-gradient(180deg, rgba(9,17,31,.98) 0%, rgba(4,9,18,.98) 100%); box-shadow: 0 60px 120px rgba(0,0,0,.6); overflow: hidden; }
+    .card.pad { padding: clamp(22px, 4vw, 40px); display: grid; gap: 18px; }
+    .card.pad h3 { margin: 0; font-size: clamp(22px, 3vw, 30px); }
+    .card.pad p { margin: 0; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid rgba(28,44,70,.8); }
+    th { text-transform: uppercase; letter-spacing: .16em; font-size: 12px; color: var(--muted-2); }
+    td { color: var(--text); }
+    td.muted { color: var(--muted); }
+    pre { margin: 0; padding: clamp(18px, 4vw, 28px); overflow-x: auto; background: radial-gradient(600px 300px at 50% 0%, rgba(99,102,241,.12) 0%, transparent 70%); color: #e0f2fe; font: 13px/1.9 "Cascadia Code", "Consolas", monospace; }
+    code.inline { font-family: "Cascadia Code", "Consolas", monospace; background: rgba(34,211,238,.12); padding: 2px 6px; border-radius: 6px; color: var(--cyan-soft); }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .mini { border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; background: linear-gradient(180deg, rgba(10,18,34,.96) 0%, rgba(4,9,18,.96) 100%); display: grid; gap: 8px; }
+    .mini h3 { margin: 0; font-size: 18px; }
+    .mini p { margin: 0; color: var(--muted); }
+    footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 22px; color: var(--muted-2); font-size: 13px; }
+    ul.clean { margin: 0; padding: 0 0 0 18px; display: grid; gap: 10px; color: var(--muted); }
+    ul.clean strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">Devpost Learn · Technical Spec</p>
+    <h1><span class="g">Ember</span> — Technical Spec</h1>
+    <p class="lede">Blueprint for building Ember with FastAPI, React Native (Expo), SQLite, Gemini Pro, and Kael as the leftmost coach.</p>
+    <div class="pills">
+      <span class="pill status">status: draft</span>
+      <span class="pill">Python + FastAPI</span>
+      <span class="pill">React Native (Expo)</span>
+      <span class="pill">SQLite (ephemeral)</span>
+      <span class="pill">Gemini Pro</span>
+      <span class="pill">Cloud Run</span>
+      <span class="pill">Kael</span>
+    </div>
+
+    <section>
+      <div class="sec-head">
+        <div class="sec-num">01</div>
+        <div>
+          <h2>Stack</h2>
+          <p class="sec-sub">Tools chosen and why</p>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Component</th><th>Technology</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Backend</td><td>Python + FastAPI</td><td class="muted">Clean API routes, easy to containerize for Cloud Run</td></tr>
+            <tr><td>Frontend</td><td>React Native (Expo)</td><td class="muted">Easy to run/emulate for demo recording</td></tr>
+            <tr><td>Database</td><td>SQLite</td><td class="muted">Ephemeral on Cloud Run for PoC</td></tr>
+            <tr><td>AI</td><td>Google Gemini Pro</td><td class="muted">Via google-generativeai, env var GEMINI_API_KEY</td></tr>
+            <tr><td>Deployment</td><td>Google Cloud Run</td><td class="muted">Containerized, listens on $PORT</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <div class="sec-num">02</div>
+        <div>
+          <h2>Core Journey Through the System</h2>
+          <p class="sec-sub">PRD behaviors mapped to components</p>
+        </div>
+      </div>
+      <div class="card pad">
+        <div>
+          <h3>Flow</h3>
+          <p>User does X → API/app handles → state updates → UI shows result</p>
+        </div>
+        <ul class="clean">
+          <li><strong>First open</strong> → <code class="inline">/setup/status</code> → first-run screen</li>
+          <li><strong>Interview + bands</strong> → Gemini Pro suggests bands, fallback to manual if fails → saved to SQLite</li>
+          <li><strong>Today</strong> → Load goal/bands/rank/logs, render <strong>Kael</strong> on leftmost (head-to-waist, no crop) → S/R +1, Floor locked</li>
+          <li><strong>Tonight</strong> → Brain dump → Gemini generates top 3 quests → saved</li>
+          <li><strong>Log</strong> → Update logs, track consecutive, apply rank penalty/up</li>
+          <li><strong>Week check-in</strong> → Analyze after ≥3 nights, propose changes, Honest Week fires live</li>
+          <li><strong>Refusal</strong> → Block Floor/lower-band changes, allow partial raise</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <div class="sec-num">03</div>
+        <div>
+          <h2>Ranks, Coach &amp; UI</h2>
+          <p class="sec-sub">Key rules from requirements</p>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="mini">
+          <h3>Ranks</h3>
+          <p>Penalty: <strong>-1</strong> on <strong>2 consecutive Nothing</strong> or <strong>unlogged days count as Nothing</strong> (never below Spark). Up: <strong>+2</strong> on <strong>3 consecutive ≥Realistic</strong>, <strong>+1</strong> on <strong>3 consecutive ≥Floor</strong>. Ranks: Spark → Kindle → Flame → Blaze → Inferno.</p>
+        </div>
+        <div class="mini">
+          <h3>Kael (Coach)</h3>
+          <p>Image: <code class="inline">devpost/assets/Gemini_Generated_Image_owkwf4owkwf4owkw.jpg</code>. Head-to-waist, folded-arm knight with sword, <strong>no cropping</strong>, scale as needed, <strong>leftmost part of page</strong>. Visible on Today, Tonight, Week.</p>
+        </div>
+        <div class="mini">
+          <h3>Look &amp; Feel</h3>
+          <p>Deep navy blue primary. Windows/icons in deep navy/purple/red only for negative alerts. 3D feel (beveled, shadows). No flashy motion.</p>
+        </div>
+        <div class="mini">
+          <h3>Storage &amp; Deploy</h3>
+          <p>Python FastAPI + SQLite (ephemeral). Deploy to <strong>Google Cloud Run</strong>. React Native Expo app talks to API via <code class="inline">API_BASE_URL</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <div class="sec-num">04</div>
+        <div>
+          <h2>File Structure</h2>
+          <p class="sec-sub">Planned layout</p>
+        </div>
+      </div>
+      <div class="card">
+        <pre>Ember/
+├── backend/          # FastAPI app, Dockerfile
+│   ├── app/
+│   │   ├── api/      # routes
+│   │   ├── services/ # db, ai, rank
+│   │   └── main.py
+│   └── requirements.txt
+├── mobile/           # React Native Expo
+│   ├── src/
+│   │   ├── components/Kael.tsx, BandRow.tsx, RankBadge.tsx
+│   │   ├── screens/   # Today, Tonight, Week, FirstRun
+│   │   └── services/api.ts
+│   └── App.tsx
+└── devpost/          # docs and assets</pre>
+      </div>
+    </section>
+
+    <footer>
+      Markdown at <code class="inline">devpost/spec.md</code> is the canonical source. This HTML companion visualizes the blueprint.
+    </footer>
+  </div>
+</body>
+</html>

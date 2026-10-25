@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import logging; logging.basicConfig(level=logging.INFO)
 from dotenv import load_dotenv
 load_dotenv()
 from app.api import logs, rank, ai, week, setup, goals

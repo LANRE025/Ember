@@ -129,8 +129,9 @@ class GroqProvider(BaseProvider):
                 r = httpx.post(url, headers=self._headers(), json=payload, timeout=timeout_ms/1000.0)
                 if r.status_code == 401:
                     raise AIUnavailable("check GROQ_API_KEY")
-                if r.status_code == 400 or r.status_code == 404:
-                    raise AIUnavailable("model id not available")
+                if r.status_code in (400, 404):
+                    log.warning("groq chat %s model=%s body=%s", r.status_code, self.model, r.text[:300])
+                    raise AIUnavailable("model id not available" if r.status_code == 404 else "bad request")
                 if r.status_code == 429 or r.status_code >= 500:
                     if attempt == 0:
                         time.sleep(0.5)
@@ -157,7 +158,9 @@ class GroqProvider(BaseProvider):
                 return {"provider": "groq", "auto_resolved": "groq", "configured": False, "model": self.model or None, "reachable": False, "hint": "check GROQ_API_KEY"}
             import httpx
             url = "https://api.groq.com/openai/v1/chat/completions"
-            payload = {"model": self.model, "messages": [{"role": "user", "content": "say ok"}], "temperature": 0, "max_tokens": 10}
+            payload = {"model": self.model, "messages": [{"role": "user", "content": "say ok"}], "temperature": 0, "max_tokens": 200}
+            if "gpt-oss" in self.model:
+                payload["reasoning_effort"] = "low"
             r = httpx.post(url, headers=self._headers(), json=payload, timeout=10)
             if r.status_code == 401:
                 return {"provider": "groq", "auto_resolved": "groq", "configured": True, "model": self.model, "reachable": False, "hint": "check GROQ_API_KEY"}
@@ -212,7 +215,7 @@ class VertexProvider(BaseProvider):
                     response_mime_type="application/json",
                     response_schema=schema,
                     temperature=0.4,
-                    max_output_tokens=2048,
+                    max_output_tokens=4096,
                 )
                 resp = self.client.models.generate_content(model=model_name, contents=user, config=config)
                 text = getattr(resp, 'text', None)
@@ -244,6 +247,7 @@ class VertexProvider(BaseProvider):
                 last_err = e
                 continue
             except Exception as e:
+                log.warning("vertex generate_json failed (attempt %s): %s", attempt + 1, str(e)[:300])
                 last_err = e
                 continue
         raise AIUnavailable(str(last_err) if last_err else "AI error")
@@ -259,7 +263,7 @@ class VertexProvider(BaseProvider):
             config = self.types.GenerateContentConfig(
                 system_instruction=system,
                 temperature=0.8,
-                max_output_tokens=512,
+                max_output_tokens=1000,
             )
             resp = self.client.models.generate_content(model=model_name, contents=contents, config=config)
             text = getattr(resp, 'text', None)

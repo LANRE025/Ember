@@ -40,7 +40,7 @@ Implements `prd.md > The Core Journey`.
 | Backend | **Python + FastAPI** | Latest stable | [FastAPI Docs](https://fastapi.tiangolo.com/) |
 | Frontend | **React Web (Vite/React)** | Latest | [React Docs](https://react.dev/) |
 | Database | **SQLite** | Built-in, ephemeral on Cloud Run | [SQLite Docs](https://www.sqlite.org/docs.html) |
-| AI | **Google Gemini** | gemini-3.8-flash on Vertex AI, location global, ADC auth, no API keys | [Google Vertex AI Docs](https://cloud.google.com/vertex-ai/docs) |
+| AI | **Configurable provider** | Groq (free key) or Vertex AI Gemini (gemini-3.8-flash, location global, ADC), or offline (none). Auto-selects by env. | [Groq Docs](https://console.groq.com/docs) / [Google Vertex AI Docs](https://cloud.google.com/vertex-ai/docs) |
 | Deployment | **Google Cloud Run** | Containerized | [Cloud Run Docs](https://cloud.google.com/run/docs) |
 | HTTP Client | **axios** (web) | Standard | [Axios Docs](https://axios-http.com/) |
 

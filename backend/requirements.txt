@@ -2,5 +2,7 @@
 uvicorn[standard]==0.32.0
 pydantic==2.9.2
 google-genai
+httpx
 python-multipart==0.0.17
 python-dotenv
+

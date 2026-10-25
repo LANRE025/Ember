@@ -96,6 +96,11 @@ export default function App() {
   const [interviewQs, setInterviewQs] = useState<string[]>([]);
   const [interviewAns, setInterviewAns] = useState<string[]>(['', '', '']);
   const [submittingInterview, setSubmittingInterview] = useState(false);
+  const [aiStatus, setAiStatus] = useState<any>(null);
+
+  useEffect(() => {
+    api.getAiHealth().then(setAiStatus).catch(()=>{})
+  }, []);
 
   useEffect(() => {
     api.getStatus().then((res: any) => {
@@ -307,6 +312,11 @@ export default function App() {
             <button className={`tab ${tab === 'achievements' ? 'on' : ''}`} onClick={() => setTab('achievements')}>ACHIEVEMENTS</button>
             <button className={`tab ${tab === 'reminder' ? 'on' : ''}`} onClick={() => setTab('reminder')}>REMINDER</button>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, paddingRight: 8 }}>
+              {aiStatus && (
+                <span style={{ fontSize: 11, color: '#b9a7ff', letterSpacing: '.12em' }}>
+                  AI: {aiStatus.provider === 'groq' ? 'Groq' : aiStatus.provider === 'vertex' ? 'Gemini (Vertex AI)' : 'offline mode'}
+                </span>
+              )}
               <div className="hex" style={{ width: 42, height: 46 }}>
                 <i></i>
                 <i>

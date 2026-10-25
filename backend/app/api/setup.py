@@ -4,6 +4,8 @@ from app.services import db
 from app.services import ai_client
 from app.services import prompts
 import json
+import logging
+log = logging.getLogger("ember.setup")
 
 router = APIRouter()
 
@@ -55,6 +57,7 @@ def start_goal(g: CreateGoal):
         conn.close()
         return {"goal_id": goal_id, "questions": [q.model_dump() if hasattr(q,'model_dump') else q.dict() for q in qs.questions]}
     except Exception:
+        log.warning("setup/start fell back to default questions", exc_info=True)
         # fallback questions
         questions = [
             {"id": "q1", "text": "How much time can you realistically spare on a tired evening?"},
@@ -106,34 +109,45 @@ def submit_interview(a: InterviewSubmit):
     conn.close()
     answers_json = json.dumps([{"question_id": r['question_id'], "question": r['question'], "answer": r['answer']} for r in ans_rows])
     try:
+        
         from pydantic import BaseModel as BM
         class BandItem(BM):
             amount: int
             unit: str
             description: str
             reason: str
+        class BandSet(BM):
+            stretch: BandItem
+            realistic: BandItem
+            floor: BandItem
         class BandsResp(BM):
-            bands: dict
+            bands: BandSet
         system = prompts.SYSTEM_PROMPT.format(context="You suggest bands for Ember. Follow all rules strictly.")
         user = prompts.BANDS_SUGGEST_PROMPT.format(category=goal_dict.get('category','general'), unit=goal_dict.get('unit','minutes'), name=goal_dict.get('name',''), why=goal_dict.get('why',''), answers_json=answers_json)
         res = ai_client.ai_client._call_json(BandsResp, system, user)
-        b = res.bands
-        stretch = b['stretch']
-        realistic = b['realistic']
-        floor = b['floor']
-        s_amt = int(stretch['amount']); r_amt = int(realistic['amount']); f_amt = int(floor['amount'])
-        unit = stretch.get('unit') or goal_dict.get('unit','minutes')
-        # validate
-        if not (f_amt >= 1 and f_amt < r_amt < s_amt and f_amt <= r_amt * 0.5 and s_amt <= r_amt * 3):
-            raise Exception("invalid")
+        st, re_, fl = res.bands.stretch, res.bands.realistic, res.bands.floor
+        s_amt, r_amt, f_amt = st.amount, re_.amount, fl.amount
+        unit = st.unit or goal_dict.get('unit', 'minutes')
+        if not (f_amt >= 1 and f_amt < r_amt < s_amt):
+            raise ValueError(f"bad band ladder floor={f_amt} realistic={r_amt} stretch={s_amt}")
         conn = db.get_conn()
         cur = conn.cursor()
-        cur.execute("INSERT INTO bands (goal_id, stretch, realistic, floor, updated_at, unit, stretch_desc, realistic_desc, floor_desc, stretch_reason, realistic_reason, floor_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                    (a.goal_id, s_amt, r_amt, f_amt, __import__('datetime').datetime.now().isoformat(), unit, stretch.get('description',''), realistic.get('description',''), floor.get('description',''), stretch.get('reason',''), realistic.get('reason',''), floor.get('reason','')))
+        cur.execute("DELETE FROM bands WHERE goal_id = ?", (a.goal_id,))
+        cols = {
+            "goal_id": a.goal_id, "stretch": s_amt, "realistic": r_amt, "floor": f_amt,
+            "updated_at": __import__('datetime').datetime.now().isoformat(), "unit": unit,
+            "stretch_desc": st.description, "realistic_desc": re_.description, "floor_desc": fl.description,
+            "stretch_reason": st.reason, "realistic_reason": re_.reason, "floor_reason": fl.reason,
+        }
+        cur.execute(f"INSERT INTO bands ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", list(cols.values()))
         conn.commit()
         conn.close()
-        return {"bands": {"stretch": s_amt, "realistic": r_amt, "floor": f_amt}, "descriptions": {"stretch": stretch.get('description',''), "realistic": realistic.get('description',''), "floor": floor.get('description','')}, "reasons": {"stretch": stretch.get('reason',''), "realistic": realistic.get('reason',''), "floor": floor.get('reason','')}, "unit": unit, "ai": True}
+        return {"bands": {"stretch": s_amt, "realistic": r_amt, "floor": f_amt},
+                "descriptions": {"stretch": st.description, "realistic": re_.description, "floor": fl.description},
+                "reasons": {"stretch": st.reason, "realistic": re_.reason, "floor": fl.reason},
+                "unit": unit, "ai": True}
     except Exception:
+        log.warning("setup/interview failed", exc_info=True)
         raise HTTPException(status_code=503, detail={"fallback": True, "message": "AI unavailable. Use manual setup."})
 
 @router.get("/status")
@@ -158,18 +172,3 @@ def status():
     total = cur.fetchone()['cnt'] or 0
     conn.close()
     return {"has_goal": True, "goal": goal, "bands": bands, "rank": rank, "unit": bands.get('unit'), "descriptions": {"stretch": bands.get('stretch_desc'), "realistic": bands.get('realistic_desc'), "floor": bands.get('floor_desc')}, "reasons": {"stretch": bands.get('stretch_reason'), "realistic": bands.get('realistic_reason'), "floor": bands.get('floor_reason')}, "interview_done": done >= total and total > 0, "category": goal.get('category')}
-
-@router.get("/status")
-def status():
-    goal = db.get_goal()
-    if not goal:
-        return {"has_goal": False}
-    bands = db.get_bands(goal['id'])
-    if not bands:
-        db.update_bands(goal['id'], 5, 3, 1)
-        bands = db.get_bands(goal['id'])
-    rank = db.get_rank(goal['id'])
-    if not rank:
-        db.init_rank(goal['id'])
-        rank = db.get_rank(goal['id'])
-    return {"has_goal": True, "goal": goal, "bands": bands, "rank": rank}

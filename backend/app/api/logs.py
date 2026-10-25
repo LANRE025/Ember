@@ -1,31 +1,30 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import sqlite3
-from datetime import date, datetime, timedelta
-import os
+from datetime import date
+from app.services import db
 
 router = APIRouter()
-
-DB_PATH = os.getenv("DB_PATH", "/tmp/ember.db")
 
 class LogEntry(BaseModel):
     goal_id: int
     result: str  # S, R, F, N
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 @router.post("/log")
 def log_day(entry: LogEntry):
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
     today = date.today().isoformat()
-    cur.execute("INSERT INTO logs (goal_id, date, result) VALUES (?, ?, ?)", 
-                (entry.goal_id, today, entry.result))
+    # upsert: one log per goal per day
+    cur.execute("SELECT id FROM logs WHERE goal_id = ? AND date = ?", (entry.goal_id, today))
+    row = cur.fetchone()
+    if row:
+        cur.execute("UPDATE logs SET result = ? WHERE id = ?", (entry.result, row['id']))
+        log_id = row['id']
+    else:
+        cur.execute("INSERT INTO logs (goal_id, date, result) VALUES (?, ?, ?)", 
+                    (entry.goal_id, today, entry.result))
+        log_id = cur.lastrowid
     conn.commit()
-    log_id = cur.lastrowid
     conn.close()
     return {"id": log_id, "date": today, "result": entry.result}
 

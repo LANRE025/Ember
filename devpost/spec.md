@@ -10,7 +10,7 @@ status: approved
 Ember keeps one goal alive by splitting it into bands (Stretch/Realistic/Floor), with the Floor read-only to the person and only Ember able to adjust it. The person can raise Stretch or Realistic by one step, but never lower them. 
 
 At the core:
-- **Setup**: The person names their goal and why, answers an interview, and gets bands assigned. The AI (Gemini Pro) can help with banding, but if it fails, the person sets Stretch/Realistic while Ember assigns the Floor.
+- **Setup**: The person names their goal and why, answers an interview, and gets bands assigned. The AI (gemini-3.8-flash on Vertex AI) can help with banding, but if it fails, the person sets Stretch/Realistic while Ember assigns the Floor.
 - **Daily loop**: Each evening, they do an "evening shutdown" (brain dump) to get tomorrow's top 3 quests. They log the day (Stretch/Realistic/Floor/Nothing). Unlogged days count as Nothing for rank penalties.
 - **Weekly check-in**: After 3 nights logged, Ember reviews evidence and may propose a one-step band change (or Floor change if necessary, never to zero). Honest Week fires live on the seeded check-in.
 - **Ranks**: Active with a penalty — 2 consecutive Nothing days or unlogged days count as Nothing and lower rank by one (never below Spark). To rank up: 3 consecutive days of at least a Realistic run gives +2, 3 consecutive days of at least a Floor run gives +1. Ranks go Spark → Kindle → Flame → Blaze → Inferno.
@@ -40,7 +40,7 @@ Implements `prd.md > The Core Journey`.
 | Backend | **Python + FastAPI** | Latest stable | [FastAPI Docs](https://fastapi.tiangolo.com/) |
 | Frontend | **React Web (Vite/React)** | Latest | [React Docs](https://react.dev/) |
 | Database | **SQLite** | Built-in, ephemeral on Cloud Run | [SQLite Docs](https://www.sqlite.org/docs.html) |
-| AI | **Google Gemini Pro** | Via `google-generativeai` | [Google AI Docs](https://ai.google.dev/docs) |
+| AI | **Google Gemini** | gemini-3.8-flash on Vertex AI, location global, ADC auth, no API keys | [Google Vertex AI Docs](https://cloud.google.com/vertex-ai/docs) |
 | Deployment | **Google Cloud Run** | Containerized | [Cloud Run Docs](https://cloud.google.com/run/docs) |
 | HTTP Client | **axios** (web) | Standard | [Axios Docs](https://axios-http.com/) |
 
@@ -53,7 +53,7 @@ Implements `prd.md > The Core Journey`.
 - **Frontend**: React web app (run locally for demo recording)
 
 **Environment requirements**:
-- `GEMINI_API_KEY` (required for AI features)
+- `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION=global`, `GEMINI_MODEL=gemini-3.8-flash` (ADC auth, no API keys)
 - `API_BASE_URL` (env var for web app pointing to Cloud Run backend)
 - `PORT` (set by Cloud Run)
 
@@ -103,7 +103,7 @@ Implements `prd.md > Look and Feel`.
 - PRD ref: `prd.md > Ranks and badges`
 
 #### `app/api/ai.py` - Gemini integration
-- Band suggestions, shutdown top-3, week analysis with Gemini Pro
+- Band suggestions, shutdown top-3, week analysis with gemini-3.8-flash on Vertex AI (global)
 - PRD ref: `prd.md > Tonight (evening shutdown)`
 
 #### `app/services/db.py` - Database layer
@@ -222,7 +222,7 @@ Ember/
 
 | Service | Purpose | Auth | Notes |
 |---------|---------|------|-------|
-| Google Gemini API (Pro) | AI features | `GEMINI_API_KEY` | Fallback to manual if unavailable |
+| Google Vertex AI (gemini-3.8-flash) | AI features | `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION=global` (ADC) | Fallback to manual if unavailable |
 | Google Cloud Run | Backend hosting | GCP auth | Ephemeral storage |
 
 ## Important Failure Modes
@@ -244,7 +244,7 @@ Ember/
 - Backend: Python FastAPI
 - Frontend: React Native (Expo)
 - Storage: SQLite ephemeral on Cloud Run
-- AI: Gemini Pro via env var
+- AI: gemini-3.8-flash on Vertex AI via env vars, ADC auth, no API keys
 - Kael: Use exact `Gemini_Generated_Image_owkwf4owkwf4owkw.jpg`, no crop, head-to-waist, leftmost, scale as needed
 - Rank up: +2 on 3 consecutive ≥Realistic, +1 on 3 consecutive ≥Floor
 - Rank down: -1 on 2 consecutive Nothing/unlogged, never below Spark

@@ -7,4 +7,5 @@
 # Local credentials and secrets
 .env
 .env.*
+.db
 !.env.example

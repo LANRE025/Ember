@@ -18,15 +18,51 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         why TEXT,
-        created_at TEXT
+        created_at TEXT,
+        category TEXT,
+        unit TEXT,
+        profile_json TEXT
     )''')
+    # migrate
+    try:
+        cur.execute("ALTER TABLE goals ADD COLUMN category TEXT")
+    except Exception:
+        pass
+    try:
+        cur.execute("ALTER TABLE goals ADD COLUMN unit TEXT")
+    except Exception:
+        pass
+    try:
+        cur.execute("ALTER TABLE goals ADD COLUMN profile_json TEXT")
+    except Exception:
+        pass
     cur.execute('''CREATE TABLE IF NOT EXISTS bands (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         goal_id INTEGER,
         stretch INTEGER,
         realistic INTEGER,
         floor INTEGER,
-        updated_at TEXT
+        updated_at TEXT,
+        unit TEXT,
+        stretch_desc TEXT,
+        realistic_desc TEXT,
+        floor_desc TEXT,
+        stretch_reason TEXT,
+        realistic_reason TEXT,
+        floor_reason TEXT
+    )''')
+    for col in ["unit","stretch_desc","realistic_desc","floor_desc","stretch_reason","realistic_reason","floor_reason"]:
+        try:
+            cur.execute(f"ALTER TABLE bands ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
+    cur.execute('''CREATE TABLE IF NOT EXISTS interview (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        goal_id INTEGER,
+        idx INTEGER,
+        question_id TEXT,
+        question TEXT,
+        answer TEXT
     )''')
     cur.execute('''CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,8 +95,16 @@ def init_db():
         week_start TEXT,
         logs_snapshot TEXT,
         proposal TEXT,
-        accepted_at TEXT
+        accepted_at TEXT,
+        answers_json TEXT,
+        questions_json TEXT,
+        status TEXT
     )''')
+    for col in ["answers_json", "questions_json", "status"]:
+        try:
+            cur.execute(f"ALTER TABLE week_checkins ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
     cur.execute('''CREATE TABLE IF NOT EXISTS quests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         goal_id INTEGER,
@@ -71,6 +115,13 @@ def init_db():
         step2 TEXT,
         quest3 TEXT,
         step3 TEXT
+    )''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        goal_id INTEGER,
+        role TEXT,
+        text TEXT,
+        created_at TEXT
     )''')
     conn.commit()
     conn.close()
@@ -98,6 +149,15 @@ def get_goal():
     return dict(row) if row else None
 
 def get_bands(goal_id):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM bands WHERE goal_id = ? ORDER BY id DESC LIMIT 1", (goal_id,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    # create default bands
+    update_bands(goal_id, 5, 3, 1)
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM bands WHERE goal_id = ? ORDER BY id DESC LIMIT 1", (goal_id,))

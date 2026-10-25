@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import kael from './assets/kael.jpg';
+import { api } from './services/api';
 
 const FlameIcon = () => (
   <svg className="ic" viewBox="0 0 24 24">
@@ -70,14 +71,46 @@ const CheckIcon = () => (
   </svg>
 );
 
-type Tab = 'today' | 'tonight' | 'week';
-type Popup = 'reminder' | 'alert' | 'complete' | 'penalty' | null;
+type Tab = 'today' | 'tonight' | 'week' | 'achievements' | 'reminder';
+type Popup = 'reminder' | 'complete' | 'penalty' | null;
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('today');
-  const [popup, setPopup] = useState<Popup>('reminder');
+  const [popup, setPopup] = useState<Popup>(null);
   const [log, setLog] = useState<'stretch' | 'realistic' | 'floor' | 'none'>('floor');
   const [scale, setScale] = useState(1);
+  const [kaelChatOpen, setKaelChatOpen] = useState(false);
+  const [kaelMessages, setKaelMessages] = useState<Array<{role: 'kael' | 'user', text: string}>>([
+    { role: 'kael', text: 'I am Kael. Speak, and I will walk beside you.' }
+  ]);
+  const [kaelInput, setKaelInput] = useState('');
+  const [goal, setGoal] = useState<any>(null);
+  const [bands, setBands] = useState<any>(null);
+  const [rank, setRank] = useState<any>(null);
+  const [hasGoal, setHasGoal] = useState<boolean | null>(null);
+  const [setupName, setSetupName] = useState('');
+  const [setupWhy, setSetupWhy] = useState('');
+  const [settingUp, setSettingUp] = useState(false);
+  const [onboardStep, setOnboardStep] = useState<'goal' | 'interview'>('goal');
+  const [goalId, setGoalId] = useState<number | null>(null);
+  const [interviewQs, setInterviewQs] = useState<string[]>([]);
+  const [interviewAns, setInterviewAns] = useState<string[]>(['', '', '']);
+  const [submittingInterview, setSubmittingInterview] = useState(false);
+
+  useEffect(() => {
+    api.getStatus().then((res: any) => {
+      if (res.has_goal) {
+        setHasGoal(true);
+        setGoal(res.goal);
+        setBands(res.bands);
+        setRank(res.rank);
+      } else {
+        setHasGoal(false);
+      }
+    }).catch(() => {
+      setHasGoal(false);
+    });
+  }, []);
 
   useEffect(() => {
     const resize = () => {
@@ -92,17 +125,142 @@ export default function App() {
   const isToday = tab === 'today';
   const isTonight = tab === 'tonight';
   const isWeek = tab === 'week';
+  const isAchievements = tab === 'achievements';
+  const isReminder = tab === 'reminder';
 
   const copy =
     tab === 'today'
       ? ["You don't have to hit the big version.", "Do the floor and it still counts.", 'TODAY']
       : tab === 'tonight'
       ? ["Empty your head. Three things only.", "I'll hand you a first step for each.", 'TONIGHT']
-      : ["Bands move on evidence, not mood.", "The floor stays where your logs say.", 'WEEK'];
+      : tab === 'week'
+      ? ["Bands move on evidence, not mood.", "The floor stays where your logs say.", 'WEEK']
+      : tab === 'achievements'
+      ? ["Your path is etched in ember.", "Every kept day adds fuel to the flame.", 'ACHIEVEMENTS']
+      : ["Never forget your why.", "Do the floor and it still counts.", 'REMINDER'];
 
   const rankPct = log === 'none' ? '50%' : '70%';
   const rankText = log === 'none' ? '5 / 10 TO FLAME ▼' : '7 / 10 TO FLAME';
   const rankNote = log === 'none' ? 'Rank lowered after a Nothing day.' : '3 more kept days. Floor days count.';
+
+  if (hasGoal === false) {
+    return (
+      <div className="viewport">
+        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+          <defs>
+            <linearGradient id="gIc" x1="0" y1="0" x2="0.6" y2="1">
+              <stop offset="0" stopColor="#f4e6ff" />
+              <stop offset=".45" stopColor="#b57cff" />
+              <stop offset="1" stopColor="#5a26c8" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="stage" style={{ '--s': scale } as any}>
+          <div className="root">
+            <div className="grid" />
+            <div className="portal" aria-hidden="true">
+              <i className="p-halo" />
+              <i className="p-s3" />
+              <i className="p-s2" />
+              <i className="p-s1" />
+              <i className="p-core" />
+            </div>
+            <div className="floor" />
+            <div className="floorfire" aria-hidden="true" />
+            <div className="coach" aria-hidden="true">
+              <img className="kael" src={kael} alt="" />
+            </div>
+            {onboardStep === 'goal' && (
+              <div className="wrap" style={{ left: 470, top: 200, width: 560, height: 320, ['--d' as any]: '.15s' }}>
+                <i className="flame" style={{ ['--d' as any]: '.7s' }}></i>
+                <div className="win">
+                  <div className="hd">
+                    <div className="excl">!</div>
+                    <div className="t">EMBER · FIRST RUN</div>
+                    <div className="s">SET YOUR GOAL</div>
+                  </div>
+                  <div className="dim" style={{ fontSize: 16, marginBottom: 12 }}>"Keep it small enough to do on a tired evening."</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <input value={setupName} onChange={e => setSetupName(e.target.value)} placeholder="Goal name" style={{ background: 'rgba(20,12,60,.9)', border: '1px solid rgba(201,160,255,.7)', color: '#f0e0ff', padding: '10px 12px', fontSize: 16 }} />
+                    <textarea value={setupWhy} onChange={e => setSetupWhy(e.target.value)} placeholder="Why does this matter?" rows={4} style={{ background: 'rgba(20,12,60,.9)', border: '1px solid rgba(201,160,255,.7)', color: '#f0e0ff', padding: '10px 12px', fontSize: 16, resize: 'none' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                    <button className="btn" disabled={settingUp || !setupName.trim() || !setupWhy.trim()} onClick={async () => {
+                      setSettingUp(true);
+                      try {
+                        const res: any = await api.startGoal(setupName.trim(), setupWhy.trim());
+                        setGoalId(res.goal_id);
+                        try {
+                          const iq: any = await api.getInterview(res.goal_id);
+                          setInterviewQs(iq.questions || []);
+                          setInterviewAns((iq.questions || []).map(() => ''));
+                        } catch (e) {
+                          setInterviewQs([]);
+                        }
+                        setOnboardStep('interview');
+                      } catch (e) {
+                      } finally {
+                        setSettingUp(false);
+                      }
+                    }}>BEGIN</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {onboardStep === 'interview' && (
+              <div className="wrap" style={{ left: 470, top: 160, width: 560, height: 420, ['--d' as any]: '.15s' }}>
+                <i className="flame" style={{ ['--d' as any]: '.7s' }}></i>
+                <div className="win">
+                  <div className="hd">
+                    <div className="excl">!</div>
+                    <div className="t">EMBER · INTERVIEW</div>
+                    <div className="s">BANDS FROM ANSWERS</div>
+                  </div>
+                  <div className="dim" style={{ fontSize: 16, marginBottom: 12 }}>Kael will shape Stretch/Realistic/Floor from your answers.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {(interviewQs.length ? interviewQs : ["How much time can you realistically spare on a tired evening?", "What's the smallest version you'd still do when unmotivated?", "What tends to get in the way most often?"]).map((q, i) => (
+                      <div key={i}>
+                        <div style={{ fontSize: 16, marginBottom: 6 }}>{i+1}. {q}</div>
+                        <input value={interviewAns[i] || ''} onChange={e => {
+                          const next = [...interviewAns];
+                          next[i] = e.target.value;
+                          setInterviewAns(next);
+                        }} style={{ width: '100%', background: 'rgba(20,12,60,.9)', border: '1px solid rgba(201,160,255,.7)', color: '#f0e0ff', padding: '10px 12px', fontSize: 15 }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                    <button className="btn" disabled={submittingInterview || !goalId} onClick={async () => {
+                      setSubmittingInterview(true);
+                      try {
+                        await api.submitInterview(goalId!, interviewAns);
+                        const st = await api.getStatus();
+                        if (st.has_goal) {
+                          setHasGoal(true);
+                          setGoal(st.goal);
+                          setBands(st.bands);
+                          setRank(st.rank);
+                        }
+                      } catch (e) {
+                      } finally {
+                        setSubmittingInterview(false);
+                      }
+                    }}>REVEAL BANDS</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="wrap" style={{ left: 470, top: 560, width: 560, height: 100, ['--d' as any]: '.35s' }}>
+              <div className="win" style={{ padding: '12px 18px' }}>
+                <div style={{ fontSize: 17 }}>Goal · Why</div>
+                <div className="dim" style={{ fontSize: 15 }}>Your single goal. Bands will form around it.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="viewport">
@@ -146,18 +304,16 @@ export default function App() {
             <button className={`tab ${tab === 'today' ? 'on' : ''}`} onClick={() => setTab('today')}>TODAY</button>
             <button className={`tab ${tab === 'tonight' ? 'on' : ''}`} onClick={() => setTab('tonight')}>TONIGHT</button>
             <button className={`tab ${tab === 'week' ? 'on' : ''}`} onClick={() => setTab('week')}>WEEK</button>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="mono dim2" style={{ fontSize: 11, letterSpacing: '.14em' }}>PREVIEW</span>
-              <button className="btn ghost" onClick={() => setPopup('reminder')}>REMINDER</button>
-              <button className="btn ghost" onClick={() => setPopup('alert')}>ALERT</button>
-              <button className="btn ghost" onClick={() => setPopup('complete')}>COMPLETE</button>
-              <div className="hex" style={{ width: 42, height: 46, marginLeft: 8 }}>
+            <button className={`tab ${tab === 'achievements' ? 'on' : ''}`} onClick={() => setTab('achievements')}>ACHIEVEMENTS</button>
+            <button className={`tab ${tab === 'reminder' ? 'on' : ''}`} onClick={() => setTab('reminder')}>REMINDER</button>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, paddingRight: 8 }}>
+              <div className="hex" style={{ width: 42, height: 46 }}>
                 <i></i>
                 <i>
                   <FlameIcon />
                 </i>
               </div>
-              <span style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 12, letterSpacing: '.14em' }}>KINDLE</span>
+              <span style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 12, letterSpacing: '.16em', whiteSpace: 'nowrap' }}>KINDLE</span>
             </div>
           </div>
           <div className="wrap" style={{ left: 30, top: 806, width: 290, height: 68, ['--d' as any]: '.4s', zIndex: 6 }}>
@@ -165,10 +321,11 @@ export default function App() {
               <div className="icbox sm">
                 <SwordIcon />
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 15, letterSpacing: '.2em' }}>KAEL</div>
                 <div className="mono dim" style={{ fontSize: 12 }}>SHADOW KNIGHT · COACH</div>
               </div>
+              <button className="btn ghost" style={{ padding: '8px 10px', fontSize: 10 }} onClick={() => setKaelChatOpen(v => !v)}>CONSULT KAEL</button>
             </div>
           </div>
           <div className="wrap" style={{ left: 470, top: 716, width: 470, height: 128, ['--d' as any]: '.9s', zIndex: 6 }}>
@@ -195,9 +352,9 @@ export default function App() {
                   <div className="hd">
                     <div className="excl">!</div>
                     <div className="t">QUEST INFO</div>
-                    <div className="s">ACTIVE GOAL · EVENING WORKOUT</div>
+                    <div className="s">ACTIVE GOAL · {goal?.name?.toUpperCase() || 'GOAL'}</div>
                   </div>
-                  <div className="dim" style={{ textAlign: 'center', fontSize: 15, marginBottom: 6 }}>"I want to feel strong again, not just busy."</div>
+                  <div className="dim" style={{ textAlign: 'center', fontSize: 15, marginBottom: 6 }}>"{goal?.why || 'Keep the ember alive.'}"</div>
                   <div style={{ textAlign: 'center', fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 15, letterSpacing: '.3em', margin: '6px 0 12px', textDecoration: 'underline', textUnderlineOffset: 6, textShadow: '0 0 12px #a45cff' }}>GOAL BANDS</div>
                   <div className="row">
                     <div className="icbox">
@@ -205,7 +362,7 @@ export default function App() {
                     </div>
                     <div style={{ width: 110 }}>
                       <div style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 13, letterSpacing: '.14em' }}>STRETCH</div>
-                      <div className="dim" style={{ fontSize: 14 }}>45-min session</div>
+                      <div className="dim" style={{ fontSize: 14 }}>{bands?.stretch || 5}-unit</div>
                     </div>
                     <div className="bar" style={{ flex: 1 }}>
                       <b style={{ width: '100%' }}></b>
@@ -218,7 +375,7 @@ export default function App() {
                     </div>
                     <div style={{ width: 110 }}>
                       <div style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 13, letterSpacing: '.14em' }}>REALISTIC</div>
-                      <div className="dim" style={{ fontSize: 14 }}>25-min session</div>
+                      <div className="dim" style={{ fontSize: 14 }}>{bands?.realistic || 3}-unit</div>
                     </div>
                     <div className="bar" style={{ flex: 1 }}>
                       <b style={{ width: '56%' }}></b>
@@ -231,7 +388,7 @@ export default function App() {
                     </div>
                     <div style={{ width: 110 }}>
                       <div style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 13, letterSpacing: '.14em' }}>FLOOR</div>
-                      <div className="dim" style={{ fontSize: 14 }}>10-min walk</div>
+                      <div className="dim" style={{ fontSize: 14 }}>{bands?.floor || 1}-unit</div>
                     </div>
                     <div className="bar pulse" style={{ flex: 1 }}>
                       <b style={{ width: '22%' }}></b>
@@ -251,16 +408,16 @@ export default function App() {
                     <div className="s">NOTHING COSTS RANK</div>
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <button className={`log ${log === 'stretch' ? 'on' : ''}`} onClick={() => setLog('stretch')}>
+                    <button className={`log ${log === 'stretch' ? 'on' : ''}`} onClick={() => { setLog('stretch'); if (goal?.id) api.logNight(goal.id, 'stretch').catch(()=>{}); }}>
                       STRETCH<small>big one</small>
                     </button>
-                    <button className={`log ${log === 'realistic' ? 'on' : ''}`} onClick={() => setLog('realistic')}>
+                    <button className={`log ${log === 'realistic' ? 'on' : ''}`} onClick={() => { setLog('realistic'); if (goal?.id) api.logNight(goal.id, 'realistic').catch(()=>{}); }}>
                       REALISTIC<small>steady</small>
                     </button>
-                    <button className={`log ${log === 'floor' ? 'on' : ''}`} onClick={() => setLog('floor')}>
+                    <button className={`log ${log === 'floor' ? 'on' : ''}`} onClick={() => { setLog('floor'); if (goal?.id) api.logNight(goal.id, 'floor').catch(()=>{}); }}>
                       FLOOR<small>still counts</small>
                     </button>
-                    <button className={`log warn ${log === 'none' ? 'on' : ''}`} onClick={() => { setLog('none'); setPopup('penalty'); }}>
+                    <button className={`log warn ${log === 'none' ? 'on' : ''}`} onClick={() => { setLog('none'); if (goal?.id) api.logNight(goal.id, 'none').catch(()=>{}); setPopup('penalty'); }}>
                       NOTHING<small>rank drops</small>
                     </button>
                   </div>
@@ -289,71 +446,6 @@ export default function App() {
                     <b style={{ width: rankPct }}></b>
                   </div>
                   <div className="dim" style={{ fontSize: 14, marginTop: 8 }}>{rankNote}</div>
-                </div>
-              </div>
-              <div className="wrap" style={{ left: 1060, top: 400, width: 340, height: 250, ['--d' as any]: '.45s' }}>
-                <i className="flame" style={{ ['--d' as any]: '1s' }}></i>
-                <div className="win">
-                  <div className="hd">
-                    <div className="t" style={{ fontSize: 15 }}>ACHIEVEMENTS</div>
-                    <div className="s">4 / 6</div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '10px 6px', justifyItems: 'center' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="hex">
-                        <i></i>
-                        <i>
-                          <FlameIcon />
-                        </i>
-                      </div>
-                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.1 }}>First<br />Kindling</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="hex">
-                        <i></i>
-                        <i>
-                          <MoonIcon />
-                        </i>
-                      </div>
-                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.1 }}>Lights<br />Out</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="hex">
-                        <i></i>
-                        <i>
-                          <ScrollIcon />
-                        </i>
-                      </div>
-                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.1 }}>Honest<br />Week</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="hex">
-                        <i></i>
-                        <i>
-                          <ShieldIcon />
-                        </i>
-                      </div>
-                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.1 }}>Held the<br />Line</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="hex lock">
-                        <i></i>
-                        <i>
-                          <BoltIcon />
-                        </i>
-                      </div>
-                      <div className="dim2" style={{ fontSize: 12, marginTop: 6, lineHeight: 1.1 }}>Tapped<br />In</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="hex lock">
-                        <i></i>
-                        <i>
-                          <SwordIcon />
-                        </i>
-                      </div>
-                      <div className="dim2" style={{ fontSize: 12, marginTop: 6, lineHeight: 1.1 }}>Rage<br />7 Stretch</div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </>
@@ -475,7 +567,6 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <button className="btn">ACCEPT</button>
-                    <button className="btn ghost" onClick={() => setPopup('alert')}>LOWER THE FLOOR</button>
                   </div>
                 </div>
               </div>
@@ -523,6 +614,125 @@ export default function App() {
             </>
           )}
 
+          {isAchievements && (
+            <>
+              <div className="wrap" style={{ left: 470, top: 150, width: 560, height: 420, ['--d' as any]: '.15s' }}>
+                <i className="flame" style={{ ['--d' as any]: '.7s' }}></i>
+                <div className="win">
+                  <div className="hd">
+                    <div className="t" style={{ fontSize: 17 }}>ACHIEVEMENTS</div>
+                    <div className="s">4 / 6</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '16px 8px', justifyItems: 'center', padding: '10px 6px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="hex"><i></i><i><FlameIcon /></i></div>
+                      <div style={{ fontSize: 13, marginTop: 8, lineHeight: 1.1 }}>First<br />Kindling</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="hex"><i></i><i><MoonIcon /></i></div>
+                      <div style={{ fontSize: 13, marginTop: 8, lineHeight: 1.1 }}>Lights<br />Out</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="hex"><i></i><i><ScrollIcon /></i></div>
+                      <div style={{ fontSize: 13, marginTop: 8, lineHeight: 1.1 }}>Honest<br />Week</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="hex"><i></i><i><ShieldIcon /></i></div>
+                      <div style={{ fontSize: 13, marginTop: 8, lineHeight: 1.1 }}>Held the<br />Line</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="hex lock"><i></i><i><BoltIcon /></i></div>
+                      <div className="dim2" style={{ fontSize: 13, marginTop: 8, lineHeight: 1.1 }}>Tapped<br />In</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="hex lock"><i></i><i><SwordIcon /></i></div>
+                      <div className="dim2" style={{ fontSize: 13, marginTop: 8, lineHeight: 1.1 }}>Rage<br />7 Stretch</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="wrap" style={{ left: 1060, top: 150, width: 340, height: 420, ['--d' as any]: '.25s' }}>
+                <i className="flame" style={{ ['--d' as any]: '.8s' }}></i>
+                <div className="win">
+                  <div className="hd">
+                    <div className="t" style={{ fontSize: 15 }}>BADGES</div>
+                    <div className="s">COLLECTED</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="row" style={{ margin: 0 }}>
+                      <div className="icbox sm"><MoonIcon /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 16 }}>Lights Out</div>
+                        <div className="mono dim" style={{ fontSize: 12 }}>Finished shutdown</div>
+                      </div>
+                      <div className="chk"><CheckIcon /></div>
+                    </div>
+                    <div className="row" style={{ margin: 0 }}>
+                      <div className="icbox sm"><FlameIcon /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 16 }}>First Kindling</div>
+                        <div className="mono dim" style={{ fontSize: 12 }}>Started the ember</div>
+                      </div>
+                      <div className="chk"><CheckIcon /></div>
+                    </div>
+                    <div className="row" style={{ margin: 0 }}>
+                      <div className="icbox sm"><ScrollIcon /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 16 }}>Honest Week</div>
+                        <div className="mono dim" style={{ fontSize: 12 }}>≥3 nights logged</div>
+                      </div>
+                      <div className="chk"><CheckIcon /></div>
+                    </div>
+                    <div className="row" style={{ margin: 0 }}>
+                      <div className="icbox sm"><ShieldIcon /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 16 }}>Held the Line</div>
+                        <div className="mono dim" style={{ fontSize: 12 }}>Kept floor going</div>
+                      </div>
+                      <div className="chk"><CheckIcon /></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {isReminder && (
+            <>
+              <div className="wrap" style={{ left: 470, top: 200, width: 560, height: 220, ['--d' as any]: '.15s' }}>
+                <i className="flame" style={{ ['--d' as any]: '.7s' }}></i>
+                <i className="streak" style={{ ['--d' as any]: '.15s' }}></i>
+                <div className="win">
+                  <div className="hd">
+                    <div className="icbox sm"><BellIcon /></div>
+                    <div className="t">REMINDER</div>
+                    <div className="s">EVENING TRIGGER</div>
+                  </div>
+                  <div style={{ fontSize: 19, textAlign: 'center', margin: '24px 0' }}>"Do the floor. It still counts."</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+                    <button className="btn">ENABLE</button>
+                    <button className="btn ghost">DISABLE</button>
+                  </div>
+                </div>
+              </div>
+              <div className="wrap" style={{ left: 1060, top: 200, width: 340, height: 160, ['--d' as any]: '.25s' }}>
+                <i className="flame" style={{ ['--d' as any]: '.8s' }}></i>
+                <div className="win">
+                  <div className="hd">
+                    <div className="icbox sm">
+                      <BellIcon />
+                    </div>
+                    <div className="t">NOTIFICATION</div>
+                    <div className="s">9:12 PM</div>
+                  </div>
+                  <div style={{ fontSize: 16, lineHeight: 1.25 }}>
+                    You said: <span className="dim">"I want to feel strong again."</span> Ten minutes still counts.
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {popup === 'reminder' && (
             <div className="wrap" style={{ left: 960, top: 660, width: 440, height: 196, ['--d' as any]: '1.6s', zIndex: 10 }}>
               <i className="flame" style={{ ['--d' as any]: '2.1s' }}></i>
@@ -545,23 +755,40 @@ export default function App() {
               </div>
             </div>
           )}
-          {popup === 'alert' && (
-            <>
-              <div className="dim-ov"></div>
-              <div className="wrap" style={{ left: 450, top: 290, width: 540, height: 250, ['--d' as any]: '.1s', zIndex: 30 }}>
-                <i className="flame red" style={{ ['--d' as any]: '.6s' }}></i>
-                <i className="streak" style={{ ['--d' as any]: '.1s', background: 'linear-gradient(90deg,transparent,#ff9aae 30%,#fff 50%,#ff9aae 70%,transparent)', boxShadow: '0 0 14px 3px #ff3a5c' }}></i>
-                <div className="win red">
-                  <div className="hd" style={{ borderColor: 'rgba(255,140,160,.4)' }}>
-                    <div className="excl" style={{ borderColor: '#ffb0c0', background: 'linear-gradient(150deg,#a01438,#3a0618)', boxShadow: 'inset 0 2px 2px rgba(255,255,255,.4),0 3px 0 #3a0618,0 0 14px #ff3a5c' }}>!</div>
-                    <div className="t" style={{ textShadow: '0 0 12px #ff3a5c' }}>SYSTEM ALERT</div>
+          {kaelChatOpen && (
+            <div className="modal" role="dialog" aria-modal="true">
+              <div className="wrap" style={{ left: 470, top: 200, width: 560, height: 320, ['--d' as any]: '.12s', zIndex: 60 }}>
+                <i className="flame" style={{ ['--d' as any]: '.4s' }}></i>
+                <div className="win" style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <div className="hd" style={{ paddingBottom: 8, marginBottom: 12 }}>
+                    <div className="icbox sm">
+                      <SwordIcon />
+                    </div>
+                    <div className="t">CONSULT KAEL</div>
+                    <div className="s">SHADOW KNIGHT · COACH</div>
                   </div>
-                  <div style={{ fontFamily: "'Orbitron'", fontWeight: 700, fontSize: 21, letterSpacing: '.1em', marginBottom: 8 }}>Floor cannot be lowered.</div>
-                  <div style={{ fontSize: 17, lineHeight: 1.3, marginBottom: 16, color: '#ffd8e0' }}>Your logs show 6 of the last 7 days kept. The floor holds. Do the 10-minute walk and it still counts.</div>
-                  <button className="btn red" onClick={() => setPopup(null)}>UNDERSTOOD</button>
+                  <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {kaelMessages.map((m, idx) => (
+                      <div key={idx} style={{ alignSelf: m.role === 'kael' ? 'flex-start' : 'flex-end', maxWidth: '75%', background: m.role === 'kael' ? 'rgba(160,90,255,.28)' : 'rgba(90,38,200,.28)', border: '1px solid rgba(201,160,255,.7)', padding: '8px 12px', borderRadius: 6, fontSize: 15 }}>
+                        {m.text}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                    <input value={kaelInput} onChange={e => setKaelInput(e.target.value)} placeholder="Speak to Kael..." style={{ flex: 1, background: 'rgba(20,12,60,.9)', border: '1px solid rgba(201,160,255,.7)', color: '#f0e0ff', padding: '8px 10px', fontFamily: "'Inter',sans-serif", fontSize: 15 }} />
+                    <button className="btn" onClick={() => {
+                      if (!kaelInput.trim()) return;
+                      setKaelMessages(m => [...m, { role: 'user', text: kaelInput.trim() }]);
+                      setTimeout(() => {
+                        setKaelMessages(m => [...m, { role: 'kael', text: 'Keep going. The floor is enough for tonight.' }]);
+                      }, 200);
+                      setKaelInput('');
+                    }}>SEND</button>
+                    <button className="btn ghost" onClick={() => setKaelChatOpen(false)}>CLOSE</button>
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
           {popup === 'penalty' && (
             <>

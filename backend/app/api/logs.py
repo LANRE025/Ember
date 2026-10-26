@@ -30,7 +30,7 @@ def log_day(entry: LogEntry):
 
 @router.get("/logs/{goal_id}")
 def get_logs(goal_id: int):
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM logs WHERE goal_id = ? ORDER BY date DESC", (goal_id,))
     rows = cur.fetchall()

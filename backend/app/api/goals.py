@@ -20,11 +20,3 @@ def raise_band(r: RaiseBand):
     else:
         db.update_bands(r.goal_id, bands['stretch'], bands['realistic'] + 1, bands['floor'])
     return db.get_bands(r.goal_id)
-
-@router.post("/lower")
-def lower_band():
-    raise HTTPException(status_code=403, detail={"message": "The Floor is set by Ember, not by you."})
-
-@router.post("/floor/lower")
-def floor_lower():
-    raise HTTPException(status_code=403, detail={"message": "The Floor is set by Ember, not by you."})

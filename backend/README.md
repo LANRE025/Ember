@@ -135,6 +135,8 @@ A healthy Groq or Vertex setup looks like:
 ```
 
 The SQLite database is created automatically on first start (`DB_PATH`, default `./ember.db`).
+To reset `./ember.db`, terminate the backend if running and run the following command from the `Ember/backend` directory: `python -c "import sqlite3; conn = sqlite3.connect('ember.db'); cursor = conn.cursor(); queries = ['DELETE FROM goals;', 'DELETE FROM bands;', 'DELETE FROM interview;', 'DELETE FROM logs;', 'DELETE FROM rank;', 'DELETE FROM rank_history;', 'DELETE FROM badges;', 'DELETE FROM week_checkins;', 'DELETE FROM quests;', 'DELETE FROM chat_messages;']; [cursor.execute(q) for q in queries]; conn.commit(); conn.close(); print('Database tables cleared successfully.')"`
+A successful reset prints: "Database tables cleared successfully.". Rerun the backend.
 
 ### Connect the frontend
 
